@@ -21,7 +21,7 @@ class Auth {
         return self::$instance;
     }
 
-    public function getApiClient(): ?AmoCRMApiClient {
+    public function getApiClient(): AmoCRMApiClient {
         return $this->apiClient;
     }
 

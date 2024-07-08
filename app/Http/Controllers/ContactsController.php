@@ -22,6 +22,6 @@ class ContactsController extends Controller
             "email" => "required|email",
         ]);
 
-        // $contact = Contacts::add($validatedData);
+        $contact = Contacts::add($validatedData);
     }
 }
