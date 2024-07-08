@@ -4,10 +4,11 @@ namespace App\Services\AmoCrm;
 
 use AmoCRM\Collections\CustomFields\CustomFieldsCollection;
 use AmoCRM\Collections\CustomFieldsValuesCollection;
+use AmoCRM\Collections\LinksCollection;
 use AmoCRM\Exceptions\AmoCRMApiException;
 use AmoCRM\Helpers\EntityTypesInterface;
+use AmoCRM\Models\BaseApiModel;
 use AmoCRM\Models\ContactModel;
-use AmoCRM\Models\CustomFields\TextCustomFieldModel;
 use AmoCRM\Models\CustomFieldsValues\BaseCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\MultitextCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\NumericCustomFieldValuesModel;
@@ -19,12 +20,25 @@ use AmoCRM\Models\CustomFieldsValues\ValueModels\MultitextCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\NumericCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
 
-use function PHPUnit\Framework\isEmpty;
 
 class Contacts
 {
-    public static function add(array $validated)
+    private ContactModel $contact;
+
+    public function __construct(private array $validated)
     {
+        $this->add();
+    }
+
+    public function getContact(): ContactModel
+    {
+        return $this->contact;
+    }   
+
+    private function add(): void
+    {
+        $validated = $this->validated;
+
         $contact = new ContactModel();
         $contact->setFirstName($validated["firstname"])
             ->setLastName($validated["lastname"]);
@@ -39,10 +53,9 @@ class Contacts
             "GENDER",
             $contact,
             new TextCustomFieldValuesModel(),
-            function () use ($validated) {
-                return (new TextCustomFieldValueCollection())
-                    ->add((new TextCustomFieldValueModel())->setValue($validated['gender']));
-            }
+            fn() => (new TextCustomFieldValueCollection())
+                    ->add((new TextCustomFieldValueModel())
+                            ->setValue($validated['gender']))
         );
 
 
@@ -52,13 +65,10 @@ class Contacts
             "PHONE",
             $contact,
             new MultitextCustomFieldValuesModel(),
-            function () use ($validated) {
-                return (new MultitextCustomFieldValueCollection())
+            fn() => (new MultitextCustomFieldValueCollection())
                             ->add((new MultitextCustomFieldValueModel())
                                     ->setEnum('WORK')
-                                    ->setValue($validated["phone"])
-                            );
-            }
+                                    ->setValue($validated["phone"]))
         );
 
         // set email value to email field
@@ -67,22 +77,29 @@ class Contacts
             "EMAIL",
             $contact,
             new MultitextCustomFieldValuesModel(),
-            function () use ($validated) {
-                return (new MultitextCustomFieldValueCollection())
+            fn() => (new MultitextCustomFieldValueCollection())
                             ->add((new MultitextCustomFieldValueModel())
                                     ->setEnum('WORK')
-                                    ->setValue($validated["email"])
-                            );
-            }
+                                    ->setValue($validated["email"]))
         );
 
-        dd($fieldsCollection);
+        // set age value to age field
+        self::addCustomField(
+            $fieldsCollection,
+            "AGE",
+            $contact,
+            new NumericCustomFieldValuesModel(),
+            fn() => (new NumericCustomFieldValueCollection())
+                            ->add((new NumericCustomFieldValueModel())
+                                    ->setValue($validated["age"]))
+        );
 
+        $contact->setResponsibleUserId(Users::getRandomId());
 
-        // ApiClient::get()->contacts()->addOne($contact);
+        $this->contact = $contact;
     }
 
-    private static function addCustomField(
+    public static function addCustomField(
         CustomFieldsCollection $fieldsCollection,
         string $code,
         ContactModel $contact,
@@ -111,5 +128,10 @@ class Contacts
         if (empty($customFieldsValue)) {
             $contact->setCustomFieldsValues($fieldsCollection);
         }
+    }
+
+    public function save(): BaseApiModel
+    {
+        return ApiClient::get()->contacts()->addOne($this->contact);
     }
 }
