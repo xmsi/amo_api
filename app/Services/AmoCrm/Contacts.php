@@ -4,6 +4,8 @@ namespace App\Services\AmoCrm;
 
 use AmoCRM\Collections\CustomFields\CustomFieldsCollection;
 use AmoCRM\Collections\CustomFieldsValuesCollection;
+use AmoCRM\Exceptions\AmoCRMApiNoContentException;
+use AmoCRM\Filters\ContactsFilter;
 use AmoCRM\Helpers\EntityTypesInterface;
 use AmoCRM\Models\BaseApiModel;
 use AmoCRM\Models\ContactModel;
@@ -17,21 +19,65 @@ use AmoCRM\Models\CustomFieldsValues\ValueCollections\TextCustomFieldValueCollec
 use AmoCRM\Models\CustomFieldsValues\ValueModels\MultitextCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\NumericCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
-
+use Illuminate\Http\RedirectResponse;
 
 class Contacts
 {
-    private ContactModel $contact;
+    private ?ContactModel $contact;
+    public bool $isCustomerCreated = false;
 
     public function __construct(private array $validated)
     {
-        $this->add();
+        if (!$this->haveDouble()) {
+            $this->add();
+        }
     }
 
     public function getContact(): ContactModel
     {
         return $this->contact;
-    }   
+    }
+
+    private function haveDouble(): bool
+    {
+        $filter = new ContactsFilter();
+        $filter->setQuery($this->validated["phone"]);
+        try {
+            $contactsCollection = ApiClient::get()->contacts()->get($filter, [EntityTypesInterface::LEADS]);
+            $contactsCollection->getBy(
+                'customFieldsValues',
+                (new MultitextCustomFieldValuesModel())
+                    ->setFieldCode("PHONE")
+                    ->setValues(
+                        (new MultitextCustomFieldValueCollection())
+                            ->add((new MultitextCustomFieldValueModel())
+                                ->setEnum('WORK')
+                                ->setValue($this->validated["phone"]))
+                    )
+            );
+
+            if ($contactsCollection->count() > 0) {
+                foreach ($contactsCollection as $contact) {
+                    if (empty($contact->getLeads())) {
+                        Links::link($contact, Leads::getOne(config('services.amocrm.domain')), 'contacts');
+                        continue;
+                    }
+
+                    $statusId = Leads::getOne($contact->getLeads()[0]->getId())->getStatusId();
+                    if ($statusId !== 0) {
+                        $newCustomer = Customers::addOne();
+                        $contact->setIsMain(false);
+                        Links::link($contact, $newCustomer, 'contacts');
+                    }
+                }
+            }
+
+            $this->isCustomerCreated = true;
+            return true;
+        } catch (AmoCRMApiNoContentException $e) {}
+
+        return false;
+    }
 
     private function add(): void
     {
@@ -51,9 +97,9 @@ class Contacts
             "GENDER",
             $contact,
             new TextCustomFieldValuesModel(),
-            fn() => (new TextCustomFieldValueCollection())
-                    ->add((new TextCustomFieldValueModel())
-                            ->setValue($validated['gender']))
+            fn () => (new TextCustomFieldValueCollection())
+                ->add((new TextCustomFieldValueModel())
+                    ->setValue($validated['gender']))
         );
 
 
@@ -63,10 +109,10 @@ class Contacts
             "PHONE",
             $contact,
             new MultitextCustomFieldValuesModel(),
-            fn() => (new MultitextCustomFieldValueCollection())
-                            ->add((new MultitextCustomFieldValueModel())
-                                    ->setEnum('WORK')
-                                    ->setValue($validated["phone"]))
+            fn () => (new MultitextCustomFieldValueCollection())
+                ->add((new MultitextCustomFieldValueModel())
+                    ->setEnum('WORK')
+                    ->setValue($validated["phone"]))
         );
 
         // set email value to email field
@@ -75,10 +121,10 @@ class Contacts
             "EMAIL",
             $contact,
             new MultitextCustomFieldValuesModel(),
-            fn() => (new MultitextCustomFieldValueCollection())
-                            ->add((new MultitextCustomFieldValueModel())
-                                    ->setEnum('WORK')
-                                    ->setValue($validated["email"]))
+            fn () => (new MultitextCustomFieldValueCollection())
+                ->add((new MultitextCustomFieldValueModel())
+                    ->setEnum('WORK')
+                    ->setValue($validated["email"]))
         );
 
         // set age value to age field
@@ -87,9 +133,9 @@ class Contacts
             "AGE",
             $contact,
             new NumericCustomFieldValuesModel(),
-            fn() => (new NumericCustomFieldValueCollection())
-                            ->add((new NumericCustomFieldValueModel())
-                                    ->setValue($validated["age"]))
+            fn () => (new NumericCustomFieldValueCollection())
+                ->add((new NumericCustomFieldValueModel())
+                    ->setValue($validated["age"]))
         );
 
         $contact->setResponsibleUserId(Users::getRandomId());

@@ -12,7 +12,7 @@ class Leads{
         try {
             $lead = ApiClient::get()->leads()->getOne($leadId);
         } catch (AmoCRMApiException $e) {
-            throw new \Exception("Lead not founded");
+            throw new \Exception("Lead not founded", 404);
             die;
         }
 
