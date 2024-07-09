@@ -31,14 +31,6 @@ class ContactsPostRequestTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-                //  ->assertJson([
-                //      'firstname' => 'John',
-                //      'lastname' => 'Doe',
-                //      'age' => 30,
-                //      'gender' => 'male',
-                //      'phone' => '1234567890',
-                //      'email' => 'john.doe@example.com',
-                //  ]);
     }
 
     /**

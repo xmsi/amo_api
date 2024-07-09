@@ -13,12 +13,6 @@ class UsersTest extends TestCase
         $users = Users::all();
 
         $this->assertNotEmpty($users);
-    }
-
-    public function test_get_all_users(): void
-    {
-        $users = Users::all();
-
         $this->assertInstanceOf(UsersCollection::class, $users);
     }
 }

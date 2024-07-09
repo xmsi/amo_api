@@ -4,8 +4,6 @@ namespace App\Services\AmoCrm;
 
 use AmoCRM\Collections\CustomFields\CustomFieldsCollection;
 use AmoCRM\Collections\CustomFieldsValuesCollection;
-use AmoCRM\Collections\LinksCollection;
-use AmoCRM\Exceptions\AmoCRMApiException;
 use AmoCRM\Helpers\EntityTypesInterface;
 use AmoCRM\Models\BaseApiModel;
 use AmoCRM\Models\ContactModel;
