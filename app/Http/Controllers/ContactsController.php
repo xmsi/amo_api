@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use AmoCRM\Helpers\EntityTypesInterface;
 use App\Http\Requests\ContactsRequest;
 use App\Services\AmoCrm\Catalogs;
 use App\Services\AmoCrm\Contacts;
@@ -18,22 +19,28 @@ class ContactsController extends Controller
     {
         $contact = new Contacts($request->validated());
 
-        if ($contact->isCustomerCreated) {
-            return back()->with('success', "Успешно проведена операция");
+        if ($contact->getIsCustomerCreated()) {
+            return back()->with('success', 'Успешно проведена операция');
         }
 
-        $lead = Leads::getOne(config('services.amocrm.leadId'));
+        $contact->save();
+
+        $lead = new Leads($contact->getContact()->getId());
+        $lead->save();
+        Links::link(
+            $contact->getContact(),
+            $lead->getLead(),
+            EntityTypesInterface::CONTACTS
+        );
+
+        $task = new Tasks($lead->getLead()->getId(), $lead->getLead()->getResponsibleUserId());
+        $task->save();
+
         $catalog = Catalogs::getOneByName('Компьютер');
 
-        $catalog->setQuantity(2.0);
-        Links::link($lead, $catalog, 'leads');
-
-        $task = new Tasks($lead->getId(), $lead->getResponsibleUserId());
-        $task->save();
+        $catalog->setQuantity(2.0); //
+        Links::link($lead->getLead(), $catalog, EntityTypesInterface::LEADS);
         
-        $contact->save();
-        Links::link($contact->getContact(), $lead, 'contacts');
-
-        return back()->with('success', "Успешно сохранён");
+        return back()->with('success', 'Успешно сохранён');
     }
 }

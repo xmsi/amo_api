@@ -2,14 +2,11 @@
 
 namespace App\Services\AmoCrm;
 
-use AmoCRM\Collections\CustomFields\CustomFieldsCollection;
-use AmoCRM\Collections\CustomFieldsValuesCollection;
 use AmoCRM\Exceptions\AmoCRMApiNoContentException;
 use AmoCRM\Filters\ContactsFilter;
 use AmoCRM\Helpers\EntityTypesInterface;
 use AmoCRM\Models\BaseApiModel;
 use AmoCRM\Models\ContactModel;
-use AmoCRM\Models\CustomFieldsValues\BaseCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\MultitextCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\NumericCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\TextCustomFieldValuesModel;
@@ -19,12 +16,13 @@ use AmoCRM\Models\CustomFieldsValues\ValueCollections\TextCustomFieldValueCollec
 use AmoCRM\Models\CustomFieldsValues\ValueModels\MultitextCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\NumericCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
-use Illuminate\Http\RedirectResponse;
+use App\Services\AmoCrm\Constants\Fields as ConstantsFields;
+use App\Services\AmoCrm\Utils\Fields;
 
 class Contacts
 {
     private ?ContactModel $contact;
-    public bool $isCustomerCreated = false;
+    private bool $isCustomerCreated = false;
 
     public function __construct(private array $validated)
     {
@@ -33,55 +31,84 @@ class Contacts
         }
     }
 
+    private function getValidated(): array
+    {
+        return $this->validated;
+    }
+
     public function getContact(): ContactModel
     {
         return $this->contact;
     }
 
+    private function setContact(ContactModel $value): void
+    {
+        $this->contact = $value;
+    }
+
+    public function getIsCustomerCreated(): bool
+    {
+        return $this->isCustomerCreated;
+    }
+
+    private function setIsCustomerCreated(bool $value): void
+    {
+        $this->isCustomerCreated = $value;
+    }
+
     private function haveDouble(): bool
     {
         $filter = new ContactsFilter();
-        $filter->setQuery($this->validated["phone"]);
+        $phone = Fields::normalizePhone($this->validated["phone"]);
+        $filter->setQuery($phone);
         try {
             $contactsCollection = ApiClient::get()->contacts()->get($filter, [EntityTypesInterface::LEADS]);
             $contactsCollection->getBy(
                 'customFieldsValues',
                 (new MultitextCustomFieldValuesModel())
-                    ->setFieldCode("PHONE")
+                    ->setFieldCode(ConstantsFields::PHONE)
                     ->setValues(
                         (new MultitextCustomFieldValueCollection())
                             ->add((new MultitextCustomFieldValueModel())
                                 ->setEnum('WORK')
-                                ->setValue($this->validated["phone"]))
+                                ->setValue($this->getValidated()["phone"]))
                     )
             );
 
-            if ($contactsCollection->count() > 0) {
+            if (!$contactsCollection->isEmpty()) {
                 foreach ($contactsCollection as $contact) {
                     if (empty($contact->getLeads())) {
-                        Links::link($contact, Leads::getOne(config('services.amocrm.domain')), 'contacts');
+                        $lead = new Leads($contact->getId());
+                        $lead->save();
+                        Links::link(
+                            $contact,
+                            $lead->getLeadsCollection()->first(),
+                            EntityTypesInterface::CONTACTS
+                        );
                         continue;
                     }
 
                     $statusId = Leads::getOne($contact->getLeads()[0]->getId())->getStatusId();
-                    if ($statusId !== 0) {
+                    if ($statusId === 142) {
                         $newCustomer = Customers::addOne();
                         $contact->setIsMain(false);
-                        Links::link($contact, $newCustomer, 'contacts');
+                        Links::link($contact, $newCustomer, EntityTypesInterface::CONTACTS);
                     }
                 }
             }
 
-            $this->isCustomerCreated = true;
+            $this->setIsCustomerCreated(true);
+            
             return true;
-        } catch (AmoCRMApiNoContentException $e) {}
+        } catch (AmoCRMApiNoContentException $e) {
+        }
 
         return false;
     }
 
     private function add(): void
     {
-        $validated = $this->validated;
+        $validated = $this->getValidated();
 
         $contact = new ContactModel();
         $contact->setFirstName($validated["firstname"])
@@ -92,9 +119,9 @@ class Contacts
         $fieldsCollection = $contactsCustomFieldsService->get();
 
         // set gender value to gender field
-        self::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
-            "GENDER",
+            ConstantsFields::GENDER,
             $contact,
             new TextCustomFieldValuesModel(),
             fn () => (new TextCustomFieldValueCollection())
@@ -104,9 +131,9 @@ class Contacts
 
 
         // set phone value to phone field
-        self::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
-            "PHONE",
+            ConstantsFields::PHONE,
             $contact,
             new MultitextCustomFieldValuesModel(),
             fn () => (new MultitextCustomFieldValueCollection())
@@ -116,9 +143,9 @@ class Contacts
         );
 
         // set email value to email field
-        self::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
-            "EMAIL",
+            ConstantsFields::EMAIL,
             $contact,
             new MultitextCustomFieldValuesModel(),
             fn () => (new MultitextCustomFieldValueCollection())
@@ -128,9 +155,9 @@ class Contacts
         );
 
         // set age value to age field
-        self::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
-            "AGE",
+            ConstantsFields::AGE,
             $contact,
             new NumericCustomFieldValuesModel(),
             fn () => (new NumericCustomFieldValueCollection())
@@ -140,42 +167,11 @@ class Contacts
 
         $contact->setResponsibleUserId(Users::getRandomId());
 
-        $this->contact = $contact;
-    }
-
-    public static function addCustomField(
-        CustomFieldsCollection $fieldsCollection,
-        string $code,
-        ContactModel $contact,
-        BaseCustomFieldValuesModel $fieldValuesModel,
-        callable $callback
-    ): void {
-        $field = $fieldsCollection->getBy("code", $code);
-
-        if (empty($field)) {
-            throw new \Exception("Please create custom field");
-        }
-
-        $customFieldsValue = $contact->getCustomFieldsValues();
-        $fieldsCollection = $customFieldsValue ?? new CustomFieldsValuesCollection();
-
-        $fieldsCollection->add(
-            $fieldValuesModel
-                ->setFieldId($field->getId())
-                ->setFieldName($field->getName())
-                ->setFieldCode($field->getCode())
-                ->setValues(
-                    $callback()
-                )
-        );
-
-        if (empty($customFieldsValue)) {
-            $contact->setCustomFieldsValues($fieldsCollection);
-        }
+        $this->setContact($contact);
     }
 
     public function save(): BaseApiModel
     {
-        return ApiClient::get()->contacts()->addOne($this->contact);
+        return ApiClient::get()->contacts()->addOne($this->getContact());
     }
 }
