@@ -17,8 +17,8 @@ use AmoCRM\Models\CustomFieldsValues\ValueModels\MultitextCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\NumericCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
 use App\Services\AmoCrm\Constants\Fields as CustomFieldsCode;
-use App\Services\AmoCrm\Constants\Leads as LeadsData;
 use App\Services\AmoCrm\Utils\Fields;
+use App\Services\AmoCrm\Utils\IntersectedEntities;
 
 class Contacts
 {
@@ -82,24 +82,11 @@ class Contacts
             if (!$contactsCollection->isEmpty()) {
                 foreach ($contactsCollection as $contact) {
                     if (empty($contact->getLeads())) {
-                        $lead = new Leads($contact->getId());
-                        $lead->save();
-                        Links::link(
-                            $contact,
-                            $lead->getLeadsCollection()->first(),
-                            EntityTypesInterface::CONTACTS
-                        );
+                        IntersectedEntities::createLeadTaskCatalogs($contact);
                         continue;
                     }
 
-                    $statusId = Leads::getOne($contact->getLeads()[0]->getId())
-                        ->getStatusId();
-
-                    if ($statusId === LeadsData::SUCCESS_STATUS_ID) {
-                        $newCustomer = Customers::addOne();
-                        $contact->setIsMain(false);
-                        Links::link($contact, $newCustomer, EntityTypesInterface::CONTACTS);
-                    }
+                    Leads::successStatusNewCustomer($contact->getLeads()[0]->getId(), $contact);
                 }
             }
 

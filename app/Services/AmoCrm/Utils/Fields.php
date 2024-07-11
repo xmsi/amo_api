@@ -44,7 +44,7 @@ class Fields
     public static function normalizePhone(string $phoneNumber): string
     {
         // delete all uneccessary chars from string
-        $phoneNumber = str_replace([' ', '-'], '', $phoneNumber);
+        $phoneNumber = str_replace([' ', '-', '(', ')'], '', $phoneNumber);
 
         // if phoneNumber hasn't +, then return without modifications
         if (!preg_match('/^\+/', $phoneNumber) || strlen($phoneNumber) < CustomFieldsData::PHONE_LAST_PART_LENGTH) {

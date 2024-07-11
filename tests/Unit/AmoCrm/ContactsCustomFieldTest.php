@@ -10,6 +10,7 @@ use AmoCRM\Models\CustomFieldsValues\TextCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\ValueCollections\TextCustomFieldValueCollection;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
 use App\Services\AmoCrm\Contacts;
+use App\Services\AmoCrm\Utils\Fields;
 
 class ContactsCustomFieldTest extends TestCase
 {
@@ -25,7 +26,7 @@ class ContactsCustomFieldTest extends TestCase
         $contact = new ContactModel();
         $fieldValuesModel = new TextCustomFieldValuesModel();
 
-        Contacts::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
             'GENDER',
             $contact,
@@ -61,7 +62,7 @@ class ContactsCustomFieldTest extends TestCase
         $contact = new ContactModel();
         $fieldValuesModel = new TextCustomFieldValuesModel();
 
-        Contacts::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
             'INVALID_CODE',
             $contact,
