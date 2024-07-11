@@ -17,7 +17,7 @@ use AmoCRM\Models\CustomFieldsValues\ValueModels\MultitextCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\NumericCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
 use App\Services\AmoCrm\Constants\Fields as CustomFieldsCode;
-use App\Services\AmoCrm\Constants\Leads;
+use App\Services\AmoCrm\Constants\Leads as LeadsData;
 use App\Services\AmoCrm\Utils\Fields;
 
 class Contacts
@@ -67,7 +67,6 @@ class Contacts
                 $filter,
                 [EntityTypesInterface::LEADS]
             );
-            dd($contactsCollection->count());
             $contactsCollection->getBy(
                 'customFieldsValues',
                 (new MultitextCustomFieldValuesModel())
@@ -96,7 +95,7 @@ class Contacts
                     $statusId = Leads::getOne($contact->getLeads()[0]->getId())
                         ->getStatusId();
 
-                    if ($statusId === Leads::SUCCESS_STATUS_ID) {
+                    if ($statusId === LeadsData::SUCCESS_STATUS_ID) {
                         $newCustomer = Customers::addOne();
                         $contact->setIsMain(false);
                         Links::link($contact, $newCustomer, EntityTypesInterface::CONTACTS);
@@ -108,7 +107,6 @@ class Contacts
 
             return true;
         } catch (AmoCRMApiNoContentException $e) {
-            dd(0);
         }
 
         return false;
