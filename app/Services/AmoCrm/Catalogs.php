@@ -7,7 +7,8 @@ use AmoCRM\Exceptions\AmoCRMApiException;
 use AmoCRM\Filters\CatalogElementsFilter;
 use AmoCRM\Models\CatalogElementModel;
 
-class Catalogs{
+class Catalogs
+{
     public static function getOneByName(string $title): CatalogElementModel
     {
         $catalog = ApiClient::get()->catalogs()->get()->getBy('catalogType', 'products');

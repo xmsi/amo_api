@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use AmoCRM\Helpers\EntityTypesInterface;
 use App\Http\Requests\ContactsRequest;
 use App\Services\AmoCrm\Catalogs;
+use App\Services\AmoCrm\Constants\Catalogs as CatalogsValue;
 use App\Services\AmoCrm\Contacts;
 use App\Services\AmoCrm\Leads;
 use App\Services\AmoCrm\Links;
@@ -19,7 +20,7 @@ class ContactsController extends Controller
     {
         $contact = new Contacts($request->validated());
 
-        if ($contact->getIsCustomerCreated()) {
+        if ($contact->getIsHaveDouble()) {
             return back()->with('success', 'Успешно проведена операция');
         }
 
@@ -36,11 +37,11 @@ class ContactsController extends Controller
         $task = new Tasks($lead->getLead()->getId(), $lead->getLead()->getResponsibleUserId());
         $task->save();
 
-        $catalog = Catalogs::getOneByName('Компьютер');
+        $catalog = Catalogs::getOneByName(CatalogsValue::NAME);
 
-        $catalog->setQuantity(2.0); //
+        $catalog->setQuantity(CatalogsValue::QUANTITY); //
         Links::link($lead->getLead(), $catalog, EntityTypesInterface::LEADS);
-        
+
         return back()->with('success', 'Успешно сохранён');
     }
 }

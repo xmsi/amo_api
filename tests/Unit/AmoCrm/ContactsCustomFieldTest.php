@@ -18,8 +18,8 @@ class ContactsCustomFieldTest extends TestCase
         $fieldsCollection = new CustomFieldsCollection();
         $textField = new TextCustomFieldModel();
         $textField->setId(436001)
-                  ->setCode("GENDER")
-                  ->setName("Пол");
+                  ->setCode('GENDER')
+                  ->setName('Пол');
         $fieldsCollection->add($textField);
 
         $contact = new ContactModel();
@@ -27,7 +27,7 @@ class ContactsCustomFieldTest extends TestCase
 
         Contacts::addCustomField(
             $fieldsCollection,
-            "GENDER",
+            'GENDER',
             $contact,
             $fieldValuesModel,
             function() {
@@ -44,8 +44,8 @@ class ContactsCustomFieldTest extends TestCase
         $genderField = $customFieldsValues->first();
         $this->assertInstanceOf(TextCustomFieldValuesModel::class, $genderField);
         $this->assertEquals(436001, $genderField->getFieldId());
-        $this->assertEquals("GENDER", $genderField->getFieldCode());
-        $this->assertEquals("Пол", $genderField->getFieldName());
+        $this->assertEquals('GENDER', $genderField->getFieldCode());
+        $this->assertEquals('Пол', $genderField->getFieldName());
 
         $genderValues = $genderField->getValues();
         $this->assertCount(1, $genderValues);
@@ -55,7 +55,7 @@ class ContactsCustomFieldTest extends TestCase
     public function testAddCustomFieldThrowsExceptionForInvalidField()
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage("Please create custom field");
+        $this->expectExceptionMessage('Please create custom field');
 
         $fieldsCollection = new CustomFieldsCollection();
         $contact = new ContactModel();
@@ -63,7 +63,7 @@ class ContactsCustomFieldTest extends TestCase
 
         Contacts::addCustomField(
             $fieldsCollection,
-            "INVALID_CODE",
+            'INVALID_CODE',
             $contact,
             $fieldValuesModel,
             function() {

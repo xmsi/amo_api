@@ -12,13 +12,13 @@ class Links
         BaseApiModel $subModel,
         string $mainEntity
     ): void {
-        
+
         $links = new LinksCollection();
         $links->add($subModel);
         try {
             ApiClient::get()->{$mainEntity}()->link($mainModel, $links);
         } catch (AmoCRMApiException $e) {
-            throw new \Exception("Could not link", 1);
+            throw new \Exception('Could not link', 1);
         }
     }
 }

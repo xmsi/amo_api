@@ -16,13 +16,14 @@ use AmoCRM\Models\CustomFieldsValues\ValueCollections\TextCustomFieldValueCollec
 use AmoCRM\Models\CustomFieldsValues\ValueModels\MultitextCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\NumericCustomFieldValueModel;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
-use App\Services\AmoCrm\Constants\Fields as ConstantsFields;
+use App\Services\AmoCrm\Constants\Fields as CustomFieldsCode;
+use App\Services\AmoCrm\Constants\Leads;
 use App\Services\AmoCrm\Utils\Fields;
 
 class Contacts
 {
     private ?ContactModel $contact;
-    private bool $isCustomerCreated = false;
+    private bool $isHaveDouble = false;
 
     public function __construct(private array $validated)
     {
@@ -46,32 +47,36 @@ class Contacts
         $this->contact = $value;
     }
 
-    public function getIsCustomerCreated(): bool
+    public function getIsHaveDouble(): bool
     {
-        return $this->isCustomerCreated;
+        return $this->isHaveDouble;
     }
 
-    private function setIsCustomerCreated(bool $value): void
+    private function setIsHaveDouble(bool $value): void
     {
-        $this->isCustomerCreated = $value;
+        $this->isHaveDouble = $value;
     }
 
     private function haveDouble(): bool
     {
         $filter = new ContactsFilter();
-        $phone = Fields::normalizePhone($this->validated["phone"]);
+        $phone = Fields::normalizePhone($this->validated['phone']);
         $filter->setQuery($phone);
         try {
-            $contactsCollection = ApiClient::get()->contacts()->get($filter, [EntityTypesInterface::LEADS]);
+            $contactsCollection = ApiClient::get()->contacts()->get(
+                $filter,
+                [EntityTypesInterface::LEADS]
+            );
+            dd($contactsCollection->count());
             $contactsCollection->getBy(
                 'customFieldsValues',
                 (new MultitextCustomFieldValuesModel())
-                    ->setFieldCode(ConstantsFields::PHONE)
+                    ->setFieldCode(CustomFieldsCode::PHONE)
                     ->setValues(
                         (new MultitextCustomFieldValueCollection())
                             ->add((new MultitextCustomFieldValueModel())
-                                ->setEnum('WORK')
-                                ->setValue($this->getValidated()["phone"]))
+                                ->setEnum(CustomFieldsCode::ENUM_WORK)
+                                ->setValue($this->getValidated()['phone']))
                     )
             );
 
@@ -88,8 +93,10 @@ class Contacts
                         continue;
                     }
 
-                    $statusId = Leads::getOne($contact->getLeads()[0]->getId())->getStatusId();
-                    if ($statusId === 142) {
+                    $statusId = Leads::getOne($contact->getLeads()[0]->getId())
+                        ->getStatusId();
+
+                    if ($statusId === Leads::SUCCESS_STATUS_ID) {
                         $newCustomer = Customers::addOne();
                         $contact->setIsMain(false);
                         Links::link($contact, $newCustomer, EntityTypesInterface::CONTACTS);
@@ -97,10 +104,11 @@ class Contacts
                 }
             }
 
-            $this->setIsCustomerCreated(true);
-            
+            $this->setIsHaveDouble(true);
+
             return true;
         } catch (AmoCRMApiNoContentException $e) {
+            dd(0);
         }
 
         return false;
@@ -111,8 +119,8 @@ class Contacts
         $validated = $this->getValidated();
 
         $contact = new ContactModel();
-        $contact->setFirstName($validated["firstname"])
-            ->setLastName($validated["lastname"]);
+        $contact->setFirstName($validated['firstname'])
+            ->setLastName($validated['lastname']);
 
         $contactsCustomFieldsService = ApiClient::get()
             ->customFields(EntityTypesInterface::CONTACTS);
@@ -121,7 +129,7 @@ class Contacts
         // set gender value to gender field
         Fields::setCustomField(
             $fieldsCollection,
-            ConstantsFields::GENDER,
+            CustomFieldsCode::GENDER,
             $contact,
             new TextCustomFieldValuesModel(),
             fn () => (new TextCustomFieldValueCollection())
@@ -133,36 +141,36 @@ class Contacts
         // set phone value to phone field
         Fields::setCustomField(
             $fieldsCollection,
-            ConstantsFields::PHONE,
+            CustomFieldsCode::PHONE,
             $contact,
             new MultitextCustomFieldValuesModel(),
             fn () => (new MultitextCustomFieldValueCollection())
                 ->add((new MultitextCustomFieldValueModel())
-                    ->setEnum('WORK')
-                    ->setValue($validated["phone"]))
+                    ->setEnum(CustomFieldsCode::ENUM_WORK)
+                    ->setValue($validated['phone']))
         );
 
         // set email value to email field
         Fields::setCustomField(
             $fieldsCollection,
-            ConstantsFields::EMAIL,
+            CustomFieldsCode::EMAIL,
             $contact,
             new MultitextCustomFieldValuesModel(),
             fn () => (new MultitextCustomFieldValueCollection())
                 ->add((new MultitextCustomFieldValueModel())
-                    ->setEnum('WORK')
-                    ->setValue($validated["email"]))
+                    ->setEnum(CustomFieldsCode::ENUM_WORK)
+                    ->setValue($validated['email']))
         );
 
         // set age value to age field
         Fields::setCustomField(
             $fieldsCollection,
-            ConstantsFields::AGE,
+            CustomFieldsCode::AGE,
             $contact,
             new NumericCustomFieldValuesModel(),
             fn () => (new NumericCustomFieldValueCollection())
                 ->add((new NumericCustomFieldValueModel())
-                    ->setValue($validated["age"]))
+                    ->setValue($validated['age']))
         );
 
         $contact->setResponsibleUserId(Users::getRandomId());
