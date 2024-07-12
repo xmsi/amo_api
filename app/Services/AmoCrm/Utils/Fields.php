@@ -46,8 +46,7 @@ class Fields
         // delete all uneccessary chars from string
         $phoneNumber = str_replace([' ', '-', '(', ')'], '', $phoneNumber);
 
-        // if phoneNumber hasn't +, then return without modifications
-        if (!preg_match('/^\+/', $phoneNumber) || strlen($phoneNumber) < CustomFieldsData::PHONE_LAST_PART_LENGTH) {
+        if (strlen($phoneNumber) < CustomFieldsData::PHONE_LAST_PART_LENGTH) {
             return $phoneNumber;
         }
 
