@@ -6,7 +6,7 @@ use AmoCRM\Collections\Leads\LeadsCollection;
 use AmoCRM\Helpers\EntityTypesInterface;
 use AmoCRM\Models\ContactModel;
 use AmoCRM\Models\LeadModel;
-use App\Services\AmoCrm\Constants\Leads as LeadsData;
+use App\Services\AmoCrm\Constants\Statuses;
 
 class Leads
 {
@@ -77,7 +77,7 @@ class Leads
         $statusId = Leads::getOne($leadId)
             ->getStatusId();
 
-        if ($statusId === LeadsData::SUCCESS_STATUS_ID) {
+        if ($statusId === Statuses::SUCCESS_ID) {
             $newCustomer = Customers::addOne();
             $contact->setIsMain(false);
             Links::link($contact, $newCustomer, EntityTypesInterface::CONTACTS);

@@ -29,8 +29,8 @@ class Catalogs
 
     public static function setCatalogsQuantity(): CatalogElementModel
     {
-        $catalog = Catalogs::getOneByName(CatalogsValues::NAME);
-        $catalog->setQuantity(CatalogsValues::QUANTITY); 
+        $catalog = Catalogs::getOneByName(CatalogsValues::COMPUTER);
+        $catalog->setQuantity(CatalogsValues::QUANTITY_DEFAULT); 
 
         return $catalog;
     }
