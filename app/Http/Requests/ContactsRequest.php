@@ -22,12 +22,12 @@ class ContactsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "firstname" => "required",
-            "lastname" => "required",
-            "age" => "required|numeric|between:8,100",
-            "gender" => "required|in:male,female",
-            "phone" => "required",
-            "email" => "required|email",
+            'firstname' => 'required',
+            'lastname' => 'required',
+            'age' => 'required|numeric|between:8,100',
+            'gender' => 'required|in:male,female',
+            'phone' => 'required',
+            'email' => 'required|email',
         ];
     }
 }

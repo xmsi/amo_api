@@ -6,8 +6,10 @@ use AmoCRM\Collections\CatalogElementsCollection;
 use AmoCRM\Exceptions\AmoCRMApiException;
 use AmoCRM\Filters\CatalogElementsFilter;
 use AmoCRM\Models\CatalogElementModel;
+use App\Services\AmoCrm\Constants\Catalogs as CatalogsValues;
 
-class Catalogs{
+class Catalogs
+{
     public static function getOneByName(string $title): CatalogElementModel
     {
         $catalog = ApiClient::get()->catalogs()->get()->getBy('catalogType', 'products');
@@ -23,5 +25,13 @@ class Catalogs{
         }
 
         return $catalogElementsCollection->getBy('name', $title);
+    }
+
+    public static function setCatalogsQuantity(): CatalogElementModel
+    {
+        $catalog = Catalogs::getOneByName(CatalogsValues::COMPUTER);
+        $catalog->setQuantity(CatalogsValues::QUANTITY_DEFAULT); 
+
+        return $catalog;
     }
 }

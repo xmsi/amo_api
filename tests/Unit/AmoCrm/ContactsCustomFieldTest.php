@@ -10,6 +10,7 @@ use AmoCRM\Models\CustomFieldsValues\TextCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\ValueCollections\TextCustomFieldValueCollection;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\TextCustomFieldValueModel;
 use App\Services\AmoCrm\Contacts;
+use App\Services\AmoCrm\Utils\Fields;
 
 class ContactsCustomFieldTest extends TestCase
 {
@@ -18,16 +19,16 @@ class ContactsCustomFieldTest extends TestCase
         $fieldsCollection = new CustomFieldsCollection();
         $textField = new TextCustomFieldModel();
         $textField->setId(436001)
-                  ->setCode("GENDER")
-                  ->setName("Пол");
+                  ->setCode('GENDER')
+                  ->setName('Пол');
         $fieldsCollection->add($textField);
 
         $contact = new ContactModel();
         $fieldValuesModel = new TextCustomFieldValuesModel();
 
-        Contacts::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
-            "GENDER",
+            'GENDER',
             $contact,
             $fieldValuesModel,
             function() {
@@ -44,8 +45,8 @@ class ContactsCustomFieldTest extends TestCase
         $genderField = $customFieldsValues->first();
         $this->assertInstanceOf(TextCustomFieldValuesModel::class, $genderField);
         $this->assertEquals(436001, $genderField->getFieldId());
-        $this->assertEquals("GENDER", $genderField->getFieldCode());
-        $this->assertEquals("Пол", $genderField->getFieldName());
+        $this->assertEquals('GENDER', $genderField->getFieldCode());
+        $this->assertEquals('Пол', $genderField->getFieldName());
 
         $genderValues = $genderField->getValues();
         $this->assertCount(1, $genderValues);
@@ -55,15 +56,15 @@ class ContactsCustomFieldTest extends TestCase
     public function testAddCustomFieldThrowsExceptionForInvalidField()
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage("Please create custom field");
+        $this->expectExceptionMessage('Please create custom field');
 
         $fieldsCollection = new CustomFieldsCollection();
         $contact = new ContactModel();
         $fieldValuesModel = new TextCustomFieldValuesModel();
 
-        Contacts::addCustomField(
+        Fields::setCustomField(
             $fieldsCollection,
-            "INVALID_CODE",
+            'INVALID_CODE',
             $contact,
             $fieldValuesModel,
             function() {

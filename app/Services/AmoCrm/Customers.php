@@ -10,12 +10,12 @@ class Customers
     public static function addOne(): BaseApiModel
     {
         $customer = new CustomerModel();
-        $customer->setName("Покупатель ".uniqid());
+        $customer->setName('Покупатель ' . uniqid());
 
         try {
             return ApiClient::get()->customers()->addOne($customer);
         } catch (AmoCRMApiException $e) {
-            throw new \Exception("Could not created customer", 500);
+            throw new \Exception('Could not created customer', 500);
             die;
         }
     }
